@@ -49,17 +49,23 @@ unsigned opencl_used [] = {
 
 unsigned compute_v0 (unsigned nb_iter)
 {
-
-  for (unsigned it = 1; it <= nb_iter; it ++) {
-    for (int i = 0; i < DIM; i++)
-      for (int j = 0; j < DIM; j++)
-	next_img (i, j) = cur_img (j, i);
+  int nb = 0;
+  for(i=0; i<DIM ; i++) {
+    for(j=0; j < DIM ; j ++){
+      nb += cur_img(i,j) != 0;
+      nb += cur_img(i+1,j) != 0;
+      nb += cur_img(i,j+1) != 0;
+      nb += cur_img(i+1,j+1) != 0;
+      nb += cur_img(i-1,j) != 0;
+      nb += cur_img(i,j-1) != 0;
+      nb += cur_img(i-1,j-1) != 0;
+    }
     
-    swap_images ();
+    if(nb >= 3)
+      cur_img(i,j) = 0;
+    else
+      cur_img(i,j) = 1;
   }
-  // retourne le nombre d'étapes nécessaires à la
-  // stabilisation du calcul ou bien 0 si le calcul n'est pas
-  // stabilisé au bout des nb_iter itérations
   return 0;
 }
 
