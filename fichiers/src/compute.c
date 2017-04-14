@@ -74,7 +74,6 @@ int nb_voisins = 0;
                 nb_voisins += cur_img(i+1,j+1) != 0 && cur_img(i+1,j+1) != red;          
               
 
-
             /*
               Si la cellule actuelle est morte (rouge ou noire)
             */
@@ -90,7 +89,7 @@ int nb_voisins = 0;
             /*
               Si la cellule actuelle est vivante
             */
-            else if(cur_img(i,j)== yellow || cur_img(i,j)== green){
+            else{
               if(nb_voisins <2 || nb_voisins >3)
                   next_img(i,j) = red;
                 else
