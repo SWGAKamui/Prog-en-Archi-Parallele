@@ -46,6 +46,12 @@ unsigned opencl_used [] = {
 
 ///////////////////////////// Version séquentielle simple
 
+Uint32 red =    0xFF0000FF;
+Uint32 green =  0x00FF00FF;
+Uint32 blue =   0x0000FFFF;
+Uint32 yellow = 0xFFFF00FF;
+Uint32 cyan =   0x00FFFFFF;
+Uint32 magenta = 0xFF00FFFF;
 
 unsigned compute_v0 (unsigned nb_iter)
 {
@@ -55,51 +61,50 @@ unsigned compute_v0 (unsigned nb_iter)
 int nb_voisins = 0;
   for (unsigned it = 1; it <= nb_iter; it ++) {
 
-        for(int i=0; i<DIM ; i++) {
-          for(int j=0; j < DIM ; j ++){
-            if(i!=0){
-              if(j!=0)
-                nb_voisins += cur_img(i-1,j-1) != 0;
-              nb_voisins += cur_img(i-1,j) != 0;           
-              nb_voisins += cur_img(i-1,j+1) != 0;
-                
-              }
-              if(j!=0){
-                nb_voisins += cur_img(i+1,j-1) != 0;
-                nb_voisins += cur_img(i,j-1) != 0;
-                }
-              nb_voisins += cur_img(i,j+1) != 0;       
-              nb_voisins += cur_img(i+1,j) != 0;
-              nb_voisins += cur_img(i+1,j+1) != 0;
-                
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){
+           
+                nb_voisins += cur_img(i-1,j) != 0 && cur_img(i-1,j) != red;           
+                nb_voisins += cur_img(i-1,j-1) != 0 && cur_img(i-1,j-1) != red;
+                nb_voisins += cur_img(i-1,j+1) != 0 && cur_img(i-1,j+1) != red;
+                nb_voisins += cur_img(i,j-1) != 0 && cur_img(i,j-1) != red;
+                nb_voisins += cur_img(i+1,j-1) != 0 && cur_img(i+1,j-1) != red;
+                nb_voisins += cur_img(i+1,j) != 0 && cur_img(i+1,j) != red;
+                nb_voisins += cur_img(i,j+1) != 0 && cur_img(i,j+1) != red;       
+                nb_voisins += cur_img(i+1,j+1) != 0 && cur_img(i+1,j+1) != red;          
               
-                
+
+
+            /*
+              Si la cellule actuelle est morte (rouge ou noire)
+            */
+            if(cur_img(i,j)== 0 || cur_img(i,j)== red ){                
+
+                if(nb_voisins == 3){
+                  next_img(i,j) = green;
+
+                }
+                else
+                  next_img (i, j) = 0;
+            }
             /*
               Si la cellule actuelle est vivante
             */
-            if(cur_img(i,j)!= 0 ){
-                if(nb_voisins <2 || nb_voisins >3)
-                  next_img(i,j) = 0;
+            else if(cur_img(i,j)== yellow || cur_img(i,j)== green){
+              if(nb_voisins <2 || nb_voisins >3)
+                  next_img(i,j) = red;
                 else
-                  next_img (i, j) = cur_img (i, j);
+                  next_img (i, j) = yellow;
+            
             }
-            /*
-              Si la cellule actuelle est morte
-            */
-            else{
-              if(nb_voisins == 3)
-                  next_img(i,j) = 1;
-                else
-                  next_img (i, j) = cur_img (i, j);
 
-            }
             /*
               Réinitialiser le nombre de voisins a 0
             */
-            swap_images ();
             nb_voisins =0;
           }
         }
+      swap_images();
     }
 
   return 0;
