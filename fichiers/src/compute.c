@@ -53,54 +53,52 @@ Uint32 yellow = 0xFFFF00FF;
 Uint32 cyan =   0x00FFFFFF;
 Uint32 magenta = 0xFF00FFFF;
 
-unsigned compute_v0 (unsigned nb_iter)
-{
+/*
+  Nombre de voisins
+*/
 
 
+void calcul_pixel(int i, int j){
 
-int nb_voisins = 0;
-  for (unsigned it = 1; it <= nb_iter; it ++) {
+        /*
+        Si la cellule actuelle est morte (rouge ou noire)
+        */
+      int nb_voisins = 0;
 
-        for(int i=1; i<DIM-1 ; i++) {
-          for(int j=1; j < DIM-1 ; j ++){
-           
-                nb_voisins += cur_img(i-1,j) != 0 && cur_img(i-1,j) != red;           
-                nb_voisins += cur_img(i-1,j-1) != 0 && cur_img(i-1,j-1) != red;
-                nb_voisins += cur_img(i-1,j+1) != 0 && cur_img(i-1,j+1) != red;
-                nb_voisins += cur_img(i,j-1) != 0 && cur_img(i,j-1) != red;
-                nb_voisins += cur_img(i+1,j-1) != 0 && cur_img(i+1,j-1) != red;
-                nb_voisins += cur_img(i+1,j) != 0 && cur_img(i+1,j) != red;
-                nb_voisins += cur_img(i,j+1) != 0 && cur_img(i,j+1) != red;       
-                nb_voisins += cur_img(i+1,j+1) != 0 && cur_img(i+1,j+1) != red;          
-              
+      nb_voisins += cur_img(i-1,j) != 0 && cur_img(i-1,j) != red;           
+      nb_voisins += cur_img(i-1,j-1) != 0 && cur_img(i-1,j-1) != red;
+      nb_voisins += cur_img(i-1,j+1) != 0 && cur_img(i-1,j+1) != red;
+      nb_voisins += cur_img(i,j-1) != 0 && cur_img(i,j-1) != red;
+      nb_voisins += cur_img(i+1,j-1) != 0 && cur_img(i+1,j-1) != red;
+      nb_voisins += cur_img(i+1,j) != 0 && cur_img(i+1,j) != red;
+      nb_voisins += cur_img(i,j+1) != 0 && cur_img(i,j+1) != red;       
+      nb_voisins += cur_img(i+1,j+1) != 0 && cur_img(i+1,j+1) != red; 
 
-            /*
-              Si la cellule actuelle est morte (rouge ou noire)
-            */
-            if(cur_img(i,j)== 0 || cur_img(i,j)== red ){                
-
-                if(nb_voisins == 3){
-                  next_img(i,j) = green;
-
-                }
+      if(cur_img(i,j)== 0 || cur_img(i,j)== red ){                
+          if(nb_voisins == 3)
+            next_img(i,j) = green;
                 else
                   next_img (i, j) = 0;
-            }
-            /*
-              Si la cellule actuelle est vivante
-            */
-            else{
+      }
+       /*
+        Si la cellule actuelle est vivante
+       */
+      else{
               if(nb_voisins <2 || nb_voisins >3)
-                  next_img(i,j) = red;
-                else
-                  next_img (i, j) = yellow;
-            
-            }
+            next_img(i,j) = red;
+          else
+            next_img (i, j) = yellow; 
+      }
 
-            /*
-              Réinitialiser le nombre de voisins a 0
-            */
-            nb_voisins =0;
+}
+
+unsigned compute_v0 (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+      #pragma omp parallel for
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){      
+                calcul_pixel(i,j);         
           }
         }
       swap_images();
@@ -131,7 +129,22 @@ void first_touch_v1 ()
 // Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
 unsigned compute_v1(unsigned nb_iter)
 {
-  return 0;
+  //avec tuile sequentielle
+  unsigned TILESIZE = 32;
+  unsigned tranche = DIM / TILESIZE;
+
+
+    for (unsigned it = 1; it <= nb_iter; it ++) {
+      #pragma omp parallel for //(collapse)
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){      
+                calcul_pixel(i,j);         
+          }
+        }
+      swap_images();
+    }
+
+
 }
 
 
