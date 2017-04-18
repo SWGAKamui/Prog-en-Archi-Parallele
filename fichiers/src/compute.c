@@ -12,11 +12,15 @@ void first_touch_v1 (void);
 void first_touch_v2 (void);
 
 unsigned compute_v0 (unsigned nb_iter); //séq simple
-unsigned compute_v1 (unsigned nb_iter); //OpenMP
-unsigned compute_v2 (unsigned nb_iter); //OpenMP
-unsigned compute_v3 (unsigned nb_iter); //openCL
+unsigned compute_v1 (unsigned nb_iter); //OpenMP for - base
+unsigned compute_v2 (unsigned nb_iter); //OpenMP for - tuilée
+unsigned compute_v3 (unsigned nb_iter); //openMP for - opt
+unsigned compute_v4 (unsigned nb_iter); //openCL task - tuile
+unsigned compute_v5 (unsigned nb_iter); //openCL task - opt
+unsigned compute_v6 (unsigned nb_iter); //openCL naive et opt
 
 void_func_t first_touch [] = {
+  //[ !!!!! TODO]attendre réponse prof
   NULL,
   first_touch_v1,
   first_touch_v2,
@@ -28,12 +32,18 @@ int_func_t compute [] = {
   compute_v1,
   compute_v2,
   compute_v3,
+  compute_v4,
+  compute_v5,
+  compute_v6,
 };
 
 char *version_name [] = {
   "Séquentielle",
-  "OpenMP",
-  "OpenMP zone",
+  "OpenMP for - base",
+  "OpenMP for - tuile",
+  "OpenMP for - opt",
+  "OpenMP task - tuile",
+  "OpenMP task - opt",
   "OpenCL",
 };
 
@@ -41,10 +51,12 @@ unsigned opencl_used [] = {
   0,
   0,
   0,
+  0,
+  0,
+  0,
   1,
 };
 
-///////////////////////////// Version séquentielle simple
 
 Uint32 red =    0xFF0000FF;
 Uint32 green =  0x00FF00FF;
@@ -91,9 +103,40 @@ void calcul_pixel(int i, int j){
       }
 
 }
-
+///////////////////////////// Version séquentielle simple
 unsigned compute_v0 (unsigned nb_iter)
 {
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){      
+                calcul_pixel(i,j);         
+          }
+        }
+      swap_images();
+    }
+  return 0;
+  // retourne le nombre d'étapes nécessaires à la
+  // stabilisation du calcul ou bien 0 si le calcul n'est pas
+  // stabilisé au bout des nb_iter itérations
+}
+
+
+///////////////////////////// Version OpenMP for (??)
+
+void first_touch_v1 ()
+{
+  int i,j ;
+#pragma omp parallel for
+  for(i=0; i<DIM ; i++) {
+    for(j=0; j < DIM ; j += 512)
+      next_img (i, j) = cur_img (i, j) = 0 ;
+  }
+}
+
+//Version OpenMP for - de base
+unsigned compute_v1(unsigned nb_iter)
+{
+  
   for (unsigned it = 1; it <= nb_iter; it ++) {
       #pragma omp parallel for
         for(int i=1; i<DIM-1 ; i++) {
@@ -105,31 +148,14 @@ unsigned compute_v0 (unsigned nb_iter)
     }
 
   return 0;
-    
 
-  // retourne le nombre d'étapes nécessaires à la
-  // stabilisation du calcul ou bien 0 si le calcul n'est pas
-  // stabilisé au bout des nb_iter itérations
+
+
 }
 
+// Version OpenMp for - tuilée
+unsigned compute_v2(unsigned nb_iter){
 
-///////////////////////////// Version OpenMP de base
-
-void first_touch_v1 ()
-{
-  int i,j ;
-
-#pragma omp parallel for
-  for(i=0; i<DIM ; i++) {
-    for(j=0; j < DIM ; j += 512)
-      next_img (i, j) = cur_img (i, j) = 0 ;
-  }
-}
-
-// Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
-unsigned compute_v1(unsigned nb_iter)
-{
-  //avec tuile sequentielle
   unsigned TILESIZE = 32;
   unsigned tranche = DIM / TILESIZE;
 
@@ -144,29 +170,37 @@ unsigned compute_v1(unsigned nb_iter)
       swap_images();
     }
 
-
+  return 0;
 }
+// Version OpenMp for - optimisée
+unsigned compute_v3(unsigned nb_iter){
 
-
-
-///////////////////////////// Version OpenMP optimisée
+ 
+  return 0;
+}
+///////////////////////////// Version OpenMP task
 
 void first_touch_v2 ()
 {
 
 }
 
-// Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
-unsigned compute_v2(unsigned nb_iter)
+// Version OpenMp task - tuilée
+unsigned compute_v4(unsigned nb_iter)
 {
   return 0; // on ne s'arrête jamais
 }
 
 
+// Version OpenMP task- optimisée
+unsigned compute_v5(unsigned nb_iter)
+{
+  return 0; // on ne s'arrête jamais
+}
+
 ///////////////////////////// Version OpenCL
 
-// Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
-unsigned compute_v3 (unsigned nb_iter)
+unsigned compute_v6 (unsigned nb_iter)
 {
   return ocl_compute (nb_iter);
 }
