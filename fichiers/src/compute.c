@@ -71,12 +71,10 @@ Uint32 magenta = 0xFF00FFFF;
 
 
 void calcul_pixel(int i, int j){
-
         /*
         Si la cellule actuelle est morte (rouge ou noire)
         */
       int nb_voisins = 0;
-
       nb_voisins += cur_img(i-1,j) != 0 && cur_img(i-1,j) != red;           
       nb_voisins += cur_img(i-1,j-1) != 0 && cur_img(i-1,j-1) != red;
       nb_voisins += cur_img(i-1,j+1) != 0 && cur_img(i-1,j+1) != red;
@@ -85,12 +83,11 @@ void calcul_pixel(int i, int j){
       nb_voisins += cur_img(i+1,j) != 0 && cur_img(i+1,j) != red;
       nb_voisins += cur_img(i,j+1) != 0 && cur_img(i,j+1) != red;       
       nb_voisins += cur_img(i+1,j+1) != 0 && cur_img(i+1,j+1) != red; 
-
       if(cur_img(i,j)== 0 || cur_img(i,j)== red ){                
           if(nb_voisins == 3)
             next_img(i,j) = green;
-                else
-                  next_img (i, j) = 0;
+          else
+            next_img (i, j) = 0;
       }
        /*
         Si la cellule actuelle est vivante
@@ -101,8 +98,8 @@ void calcul_pixel(int i, int j){
           else
             next_img (i, j) = yellow; 
       }
-
 }
+
 ///////////////////////////// Version séquentielle simple
 unsigned compute_v0 (unsigned nb_iter)
 {
@@ -119,7 +116,6 @@ unsigned compute_v0 (unsigned nb_iter)
   // stabilisation du calcul ou bien 0 si le calcul n'est pas
   // stabilisé au bout des nb_iter itérations
 }
-
 
 ///////////////////////////// Version OpenMP for (??)
 
@@ -159,12 +155,14 @@ unsigned compute_v2(unsigned nb_iter){
   unsigned TILESIZE = 32;
   unsigned tranche = DIM / TILESIZE;
 
-
     for (unsigned it = 1; it <= nb_iter; it ++) {
-      #pragma omp parallel for //(collapse)
-        for(int i=1; i<DIM-1 ; i++) {
-          for(int j=1; j < DIM-1 ; j ++){      
-                calcul_pixel(i,j);         
+//#pragma omp parallel for //collapse(5) schedule(dynamic) 
+      //#pragma omp parallel for //(collapse)
+        for(int i = 1; i < DIM  - 1; i += TILESIZE) {
+          for(int j = 1; j < DIM - 1; j += TILESIZE){      
+            for(int l = i; l < TILESIZE + i ; l++)
+              for(int k = j; k < TILESIZE + j; k++)
+                calcul_pixel(l,k);        
           }
         }
       swap_images();

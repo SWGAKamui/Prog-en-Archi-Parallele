@@ -1,14 +1,50 @@
-__kernel void transpose_naif (__global unsigned *in, __global unsigned *out)
+static unsigned saturate (unsigned input)
+{
+  for (int i = 0; i < 7; i++)
+    input = (input << 1) | input;
+
+  return input;
+}
+
+__kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0);
   int y = get_global_id (1);
 
-  out [x * DIM + y] = in [y * DIM + x];
+  unsigned local_color = in[y * DIM + x];
+
+  if(x != (DIM - 1) && x != 0 && y != (DIM-1) && y != 0 ){
+    int nb_voisins = 0;
+    
+    nb_voisins += in[y * DIM + (x +1)];
+    nb_voisins += in[y * DIM + (x - 1)];
+    nb_voisins += in[(y + 1) * DIM + x];
+    nb_voisins += in[(y - 1) * DIM + x];
+    nb_voisins += in[(y - 1) * DIM + (x - 1)];
+    nb_voisins += in[(y + 1) * DIM + (x + 1)];
+    nb_voisins += in[(y - 1) * DIM + (x + 1)];
+    nb_voisins += in[(y + 1) * DIM + (x - 1)];
+
+
+
+    if(local_color == 0 || local_color == saturate (0x11000011)){
+      if(nb_voisins == 3)
+        out[y*DIM + x] = saturate (0x00110011);
+      else
+        out[y*DIM + x] = 0;
+    }
+    else{
+      if(nb_voisins < 2 || nb_voisins > 3)
+        out[y*DIM + x] = saturate (0x11000011);
+      else
+        out[y*DIM + x] = saturate (0x11110011);
+      }
+  }
 }
 
 
 
-__kernel void transpose (__global unsigned *in, __global unsigned *out)
+__kernel void game_of_life_opt (__global unsigned *in, __global unsigned *out)
 {
   __local unsigned tile [TILEX][TILEY+1];
   int x = get_global_id (0);
@@ -22,9 +58,6 @@ __kernel void transpose (__global unsigned *in, __global unsigned *out)
 
   out [(x - xloc + yloc) * DIM + y - yloc + xloc] = tile [yloc][xloc];
 }
-
-
-
 
 
 // NE PAS MODIFIER
