@@ -28,17 +28,21 @@ void_func_t first_touch [] = {
 };
 
 int_func_t compute [] = {
-  compute_v0,
-  compute_v1,
-  compute_v2,
-  compute_v3,
-  compute_v4,
-  compute_v5,
-  compute_v6,
+  compute_v0,//seq - base
+  compute_v1,//seq - tuile
+  compute_v2,//seq - opti
+  compute_v3,//for - base
+  compute_v4,//for - tuile
+  compute_v5,//for - opti
+  compute_v6,//task - tuile
+  compute_v7,//task - opt
+  compute_v8,//opencl
 };
 
 char *version_name [] = {
-  "Séquentielle",
+  "Séquentielle - base",
+  "Séquentielle - tuile",
+  "Séquentielle - optimisee",
   "OpenMP for - base",
   "OpenMP for - tuile",
   "OpenMP for - opt",
@@ -48,15 +52,16 @@ char *version_name [] = {
 };
 
 unsigned opencl_used [] = {
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  1,
+  0,//seq - base
+  0,//seq - tuile
+  0,//seq - opti
+  0,//for - base
+  0,//for - tuile
+  0,//for - opti
+  0,//task - tuile
+  0,//task - opt
+  1,//opencl
 };
-
 
 Uint32 red =    0xFF0000FF;
 Uint32 green =  0x00FF00FF;
@@ -65,10 +70,19 @@ Uint32 yellow = 0xFFFF00FF;
 Uint32 cyan =   0x00FFFFFF;
 Uint32 magenta = 0xFF00FFFF;
 
-/*
-  Nombre de voisins
-*/
 
+void first_touch_v1 (){
+  int i,j ;
+#pragma omp parallel for
+  for(i=0; i<DIM ; i++) {
+    for(j=0; j < DIM ; j += 512)
+      next_img (i, j) = cur_img (i, j) = 0 ;
+  }
+}
+
+void first_touch_v2 (){
+
+}
 
 void calcul_pixel(int i, int j){
         /*
@@ -100,9 +114,8 @@ void calcul_pixel(int i, int j){
       }
 }
 
-///////////////////////////// Version séquentielle simple
-unsigned compute_v0 (unsigned nb_iter)
-{
+////////////////////////////////////////// Version séquentielle simple
+unsigned compute_v0 (unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it ++) {
         for(int i=1; i<DIM-1 ; i++) {
           for(int j=1; j < DIM-1 ; j ++){      
@@ -117,40 +130,8 @@ unsigned compute_v0 (unsigned nb_iter)
   // stabilisé au bout des nb_iter itérations
 }
 
-///////////////////////////// Version OpenMP for (??)
-
-void first_touch_v1 ()
-{
-  int i,j ;
-#pragma omp parallel for
-  for(i=0; i<DIM ; i++) {
-    for(j=0; j < DIM ; j += 512)
-      next_img (i, j) = cur_img (i, j) = 0 ;
-  }
-}
-
-//Version OpenMP for - de base
-unsigned compute_v1(unsigned nb_iter)
-{
-  
-  for (unsigned it = 1; it <= nb_iter; it ++) {
-      #pragma omp parallel for
-        for(int i=1; i<DIM-1 ; i++) {
-          for(int j=1; j < DIM-1 ; j ++){      
-                calcul_pixel(i,j);         
-          }
-        }
-      swap_images();
-    }
-
-  return 0;
-
-
-
-}
-
-// Version OpenMp for - tuilée
-unsigned compute_v2(unsigned nb_iter){
+//Version Sequentielle - tuile
+unsigned compute_v1(unsigned nb_iter){
   unsigned TILESIZE_i = 32;
   unsigned TILESIZE_j = 32;
   unsigned TILESIZE = 32;
@@ -186,36 +167,49 @@ unsigned compute_v2(unsigned nb_iter){
 
   return 0;
 }
-// Version OpenMp for - optimisée
-unsigned compute_v3(unsigned nb_iter){
-
- 
+//Version Sequentielle - opti
+unsigned compute_v2(unsigned nb_iter){
   return 0;
 }
-///////////////////////////// Version OpenMP task
 
-void first_touch_v2 ()
-{
-
+////////////////////////////////////////// Version OpenMP for (??)
+//Version OpenMP for - de base
+unsigned compute_v3(unsigned nb_iter){
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+      #pragma omp parallel for
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){      
+                calcul_pixel(i,j);         
+          }
+        }
+      swap_images();
+    }
+  return 0;
 }
 
+// Version OpenMp for - tuilée
+unsigned compute_v4(unsigned nb_iter){
+  return 0;
+}
+
+// Version OpenMp for - optimisée
+unsigned compute_v5(unsigned nb_iter){
+  return 0;
+}
+
+////////////////////////////////////////// Version OpenMP task
 // Version OpenMp task - tuilée
-unsigned compute_v4(unsigned nb_iter)
-{
+unsigned compute_v6(unsigned nb_iter){
   return 0; // on ne s'arrête jamais
 }
-
 
 // Version OpenMP task- optimisée
-unsigned compute_v5(unsigned nb_iter)
-{
+unsigned compute_v7(unsigned nb_iter){
   return 0; // on ne s'arrête jamais
 }
 
-///////////////////////////// Version OpenCL
-
-unsigned compute_v6 (unsigned nb_iter)
-{
+////////////////////////////////////////// Version OpenCL
+unsigned compute_v8 (unsigned nb_iter){
   return ocl_compute (nb_iter);
 }
 
