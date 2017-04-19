@@ -12,13 +12,14 @@ void first_touch_v1 (void);
 void first_touch_v2 (void);
 
 unsigned compute_v0 (unsigned nb_iter); //séq simple
-unsigned compute_v1 (unsigned nb_iter); //OpenMP for - base
-unsigned compute_v2 (unsigned nb_iter); //OpenMP for - tuilée
-unsigned compute_v3 (unsigned nb_iter); //openMP for - opt
-unsigned compute_v4 (unsigned nb_iter); //openCL task - tuile
-unsigned compute_v5 (unsigned nb_iter); //openCL task - opt
-unsigned compute_v6 (unsigned nb_iter); //openCL naive et opt
-
+unsigned compute_v1 (unsigned nb_iter); //séq tuile
+unsigned compute_v2 (unsigned nb_iter); //séq opti
+unsigned compute_v3 (unsigned nb_iter); //openMP for - base
+unsigned compute_v4 (unsigned nb_iter); //openMP for - tuile
+unsigned compute_v5 (unsigned nb_iter); //openMP for - opt
+unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
+unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
+unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch [] = {
   //[ !!!!! TODO]attendre réponse prof
   NULL,
@@ -138,6 +139,61 @@ unsigned compute_v1(unsigned nb_iter){
   unsigned tranche = DIM / TILESIZE;
 
     for (unsigned it = 1; it <= nb_iter; it ++) {
+        for(int i = 1; i <= DIM  - 1; i += TILESIZE_i) {
+          for(int j = 1; j <= DIM - 1; j += TILESIZE_j){      
+            for(int l = i; l < TILESIZE + i ; l++){
+              for(int k = j; k < TILESIZE + j; k++){
+                if(TILESIZE_i == 30)
+                  l+=2;
+                if(TILESIZE_j == 30)
+                  k+=2;
+                if(l < DIM - 1 && k < DIM -1)
+                  calcul_pixel(l,k); 
+
+              }
+            }
+            if(j == DIM - TILESIZE)
+              TILESIZE_j = 30;
+            else
+              TILESIZE_j = 32;
+          }
+          if(i == DIM - TILESIZE)
+              TILESIZE_i = 30;
+            else
+              TILESIZE_i = 32;
+        }
+      swap_images();
+    }
+  return 0;
+}
+//Version Sequentielle - opti
+unsigned compute_v2(unsigned nb_iter){
+  return 0;
+}
+
+////////////////////////////////////////// Version OpenMP for (??)
+//Version OpenMP for - de base
+unsigned compute_v3(unsigned nb_iter){
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+      #pragma omp parallel for
+        for(int i=1; i<DIM-1 ; i++) {
+          for(int j=1; j < DIM-1 ; j ++){      
+                calcul_pixel(i,j);         
+          }
+        }
+      swap_images();
+    }
+  return 0;
+}
+
+// Version OpenMp for - tuilée
+unsigned compute_v4(unsigned nb_iter){
+  unsigned TILESIZE_i = 32;
+  unsigned TILESIZE_j = 32;
+  unsigned TILESIZE = 32;
+  unsigned tranche = DIM / TILESIZE;
+
+    for (unsigned it = 1; it <= nb_iter; it ++) {
 //#pragma omp parallel for collapse(4) schedule(dynamic) 
         for(int i = 1; i <= DIM  - 1; i += TILESIZE_i) {
           for(int j = 1; j <= DIM - 1; j += TILESIZE_j){      
@@ -164,31 +220,6 @@ unsigned compute_v1(unsigned nb_iter){
         }
       swap_images();
     }
-
-  return 0;
-}
-//Version Sequentielle - opti
-unsigned compute_v2(unsigned nb_iter){
-  return 0;
-}
-
-////////////////////////////////////////// Version OpenMP for (??)
-//Version OpenMP for - de base
-unsigned compute_v3(unsigned nb_iter){
-  for (unsigned it = 1; it <= nb_iter; it ++) {
-      #pragma omp parallel for
-        for(int i=1; i<DIM-1 ; i++) {
-          for(int j=1; j < DIM-1 ; j ++){      
-                calcul_pixel(i,j);         
-          }
-        }
-      swap_images();
-    }
-  return 0;
-}
-
-// Version OpenMp for - tuilée
-unsigned compute_v4(unsigned nb_iter){
   return 0;
 }
 
