@@ -151,19 +151,35 @@ unsigned compute_v1(unsigned nb_iter)
 
 // Version OpenMp for - tuilée
 unsigned compute_v2(unsigned nb_iter){
-
+  unsigned TILESIZE_i = 32;
+  unsigned TILESIZE_j = 32;
   unsigned TILESIZE = 32;
   unsigned tranche = DIM / TILESIZE;
 
     for (unsigned it = 1; it <= nb_iter; it ++) {
-//#pragma omp parallel for //collapse(5) schedule(dynamic) 
-      //#pragma omp parallel for //(collapse)
-        for(int i = 1; i < DIM  - 1; i += TILESIZE) {
-          for(int j = 1; j < DIM - 1; j += TILESIZE){      
-            for(int l = i; l < TILESIZE + i ; l++)
-              for(int k = j; k < TILESIZE + j; k++)
-                calcul_pixel(l,k);        
+//#pragma omp parallel for collapse(4) schedule(dynamic) 
+        for(int i = 1; i <= DIM  - 1; i += TILESIZE_i) {
+          for(int j = 1; j <= DIM - 1; j += TILESIZE_j){      
+            for(int l = i; l < TILESIZE + i ; l++){
+              for(int k = j; k < TILESIZE + j; k++){
+                if(TILESIZE_i == 30)
+                  l+=2;
+                if(TILESIZE_j == 30)
+                  k+=2;
+                if(l < DIM - 1 && k < DIM -1)
+                  calcul_pixel(l,k); 
+
+              }
+            }
+            if(j == DIM - TILESIZE)
+              TILESIZE_j = 30;
+            else
+              TILESIZE_j = 32;
           }
+          if(i == DIM - TILESIZE)
+              TILESIZE_i = 30;
+            else
+              TILESIZE_i = 32;
         }
       swap_images();
     }
