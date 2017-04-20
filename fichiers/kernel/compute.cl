@@ -10,12 +10,11 @@ __kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0);
   int y = get_global_id (1);
-
   unsigned local_color = in[y * DIM + x];
 
   if(x != (DIM - 1) && x != 0 && y != (DIM-1) && y != 0 ){
     int nb_voisins = 0;
-    
+    /*  Calcul nombre de voisins   */
     nb_voisins += in[y * DIM + (x+1)]!=0 && in[y * DIM + (x+1)]!=saturate (0x11000011);
     nb_voisins += in[y * DIM + (x-1)]!=0 && in[y * DIM + (x-1)]!=saturate (0x11000011);
     nb_voisins += in[(y+1) * DIM + x]!=0 && in[(y+1) * DIM + x]!=saturate (0x11000011);
@@ -24,17 +23,14 @@ __kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
     nb_voisins += in[(y+1) * DIM + (x+1)]!=0 && in[(y+1) * DIM + (x+1)]!=saturate (0x11000011);
     nb_voisins += in[(y-1) * DIM + (x+1)]!=0 && in[(y-1) * DIM + (x+1)]!=saturate (0x11000011);
     nb_voisins += in[(y+1) * DIM + (x-1)]!=0 && in[(y+1) * DIM + (x-1)]!=saturate (0x11000011);
-       /*
-        Si la cellule actuelle est morte
-       */
+
+      /* Si la cellule actuelle est morte */
     if(local_color == 0 || local_color == saturate (0x11000011)){
       if(nb_voisins == 3)
         out[y*DIM + x] = saturate (0x00110011); //green
       else
         out[y*DIM + x] = 0;
-    } /*
-        Si la cellule actuelle est vivante
-       */
+    } /* Si la cellule actuelle est vivante */
     else{
       if(nb_voisins < 2 || nb_voisins > 3)
         out[y*DIM + x] = saturate (0x11000011); //red
@@ -44,27 +40,58 @@ __kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
   }
 }
 
-
-
 __kernel void game_of_life_opt (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0);
   int y = get_global_id (1);
-    __local float tile[TILEY][TILEX+1];
+unsigned local_color = in[y * DIM + x];
+  __local float tile[TILEY][TILEX+1];
 
   int xloc = get_local_id (0);
   int yloc = get_local_id (1);
 
-  //initialiser le tampon tile
-  tile [xloc][yloc] = in [y * DIM + x];
+ if(x != (DIM - 1) && x != 0 && y != (DIM-1) && y != 0 ){
+     //initialiser le tampon tile
+     tile [yloc][xloc] = in [y * DIM + x];
+     //barriere obligatoire pour attendre l'initialisation de tile
+     barrier (CLK_LOCAL_MEM_FENCE);
 
-  //barriere obligatoire
-  barrier (CLK_LOCAL_MEM_FENCE);
+     int nb_voisins = 0;
 
-  //ecrire le resultat
-  out [(x-xloc +yloc) * DIM + y-yloc + xloc] = tile [yloc][xloc];
+    nb_voisins += tile[xloc-1][yloc]!=0 && tile[xloc-1][yloc]!=saturate (0x11000011);
+    nb_voisins += tile[xloc-1][yloc-1]!=0 && tile[xloc-1][yloc-1]!=saturate (0x11000011);
+    nb_voisins += tile[xloc-1][yloc+1]!=0 && tile[xloc-1][yloc+1]!=saturate (0x11000011);
+    
+    nb_voisins += tile[xloc][yloc-1]!=0 && tile[xloc][yloc-1]!=saturate (0x11000011);
+    nb_voisins += tile[xloc+1][yloc-1]!=0 && tile[xloc+1][yloc-1]!=saturate (0x11000011);
+    nb_voisins += tile[xloc+1][yloc]!=0 && tile[xloc+1][yloc]!=saturate (0x11000011);
+    nb_voisins += tile[xloc][yloc+1]!=0 && tile[xloc][yloc+1]!=saturate (0x11000011);
+    nb_voisins += tile[xloc+1][yloc+1]!=0 && tile[xloc+1][yloc+1]!=saturate (0x11000011);
+
+    //barriere obligatoire
+    barrier (CLK_LOCAL_MEM_FENCE);
+      /*
+        Si la cellule actuelle est morte
+       */
+    if(local_color == 0 || local_color == saturate (0x11000011)){
+      if(nb_voisins == 3)
+        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x00110011); //green
+      else
+        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = 0;
+    } /*
+        Si la cellule actuelle est vivante
+       */
+    else{
+      if(nb_voisins < 2 || nb_voisins > 3)
+        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x11000011); //red
+      else
+        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x11110011); //yellow
+      }
+
+
+  }
+
 }
-
 
 // NE PAS MODIFIER
 static float4 color_scatter (unsigned c)
