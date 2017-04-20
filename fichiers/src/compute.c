@@ -18,6 +18,7 @@ unsigned compute_v3 (unsigned nb_iter); //openMP for - base
 unsigned compute_v4 (unsigned nb_iter); //openMP for - tuile
 unsigned compute_v5 (unsigned nb_iter); //openMP for - opt
 unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
+void compute_v6_tmp (int inc, int tuile); //openMP task - tuile
 unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
 unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch [] = {
@@ -202,34 +203,29 @@ unsigned compute_v5(unsigned nb_iter){
 ////////////////////////////////////////// Version OpenMP task
 // Version OpenMp task - tuilée
 unsigned compute_v6(unsigned nb_iter){
-  unsigned TILESIZE_i = 32;
-  unsigned TILESIZE_j = 32;
-  unsigned TILESIZE = 32;
-    for (unsigned it = 1; it <= nb_iter; it ++) {
-        for(int i = 1; i <= DIM  - 1; i += TILESIZE_i) 
-          for(int j = 1; j <= DIM - 1; j += TILESIZE_j)
-            for(int l = i; l < TILESIZE + i ; l++)
-              for(int k = j; k < TILESIZE + j; k++){
-                if(j == DIM - TILESIZE)
-                  TILESIZE_j = 30;
-                else
-                  TILESIZE_j = 32;
-                if(i == DIM - TILESIZE)
-                    TILESIZE_i = 30;
-                  else
-                    TILESIZE_i = 32;
-                if(TILESIZE_i == 30)
-                  l+=2;
-                if(TILESIZE_j == 30)
-                  k+=2;
-                if(l < DIM - 1 && k < DIM -1)
-                  calcul_pixel(l,k); 
-
-            }            
-      swap_images();
-    }
+  int tuile = 32;
+  int inc = 1;
+  for (unsigned it = 1; it <= nb_iter; it ++) {     
+  #pragma omp single
+    compute_v6_tmp(inc, tuile);
+  }
   return 0;
 }
+
+void compute_v6_tmp(int inc,int tuile){
+ // printf("%d  et %d \n",inc,DIM);
+  if(inc < DIM - 1){
+    for(int i = inc; i < inc + tuile; i++) 
+      for(int j = inc; j < inc + tuile; j++)
+        #pragma omp task firstprivate(inc,tuile) if(inc < DIM - 1)
+          calcul_pixel(i,j);       
+    swap_images();
+    #pragma omp taskwait
+    if(inc + tuile < DIM -1)
+      compute_v6_tmp(inc+tuile, tuile);          
+  }
+}
+
 
 // Version OpenMP task- optimisée
 unsigned compute_v7(unsigned nb_iter){
