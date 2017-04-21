@@ -18,7 +18,7 @@ unsigned compute_v3 (unsigned nb_iter); //openMP for - base
 unsigned compute_v4 (unsigned nb_iter); //openMP for - tuile
 unsigned compute_v5 (unsigned nb_iter); //openMP for - opt
 unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
-void compute_v6_tmp (int inc, int tuile); //openMP task - tuile
+void compute_v6_tmp (int inc_i, int inc_j, int size_i, int size_j); //openMP task - tuile
 unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
 unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch [] = {
@@ -171,9 +171,9 @@ unsigned compute_v2(unsigned nb_iter){
 unsigned compute_v3(unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it ++) {
       #pragma omp parallel for
-        for(int i = 1; i< DIM - 1 ; i++) {
-          for(int j = 1; j < DIM - 1 ; j ++){      
-                calcul_pixel(i,j);         
+        for(int i = 1; i < DIM - 1 ; i++) {
+          for(int j = 1; j < DIM - 1 ; j++){      
+            calcul_pixel(i,j);         
           }
         }
       swap_images();
@@ -203,26 +203,24 @@ unsigned compute_v5(unsigned nb_iter){
 ////////////////////////////////////////// Version OpenMP task
 // Version OpenMp task - tuilée
 unsigned compute_v6(unsigned nb_iter){
-  int tuile = 32;
-  int inc = 1;
-  for (unsigned it = 1; it <= nb_iter; it ++) {     
-  #pragma omp single
-    compute_v6_tmp(inc, tuile);
+  for (unsigned it = 1; it <= nb_iter; it ++) {  
+    compute_v6_tmp(1,1,32,32);
+    swap_images();
   }
   return 0;
 }
 
-void compute_v6_tmp(int inc,int tuile){
- // printf("%d  et %d \n",inc,DIM);
-  if(inc < DIM - 1){
-    for(int i = inc; i < inc + tuile; i++) 
-      for(int j = inc; j < inc + tuile; j++)
-        #pragma omp task firstprivate(inc,tuile) if(inc < DIM - 1)
-          calcul_pixel(i,j);       
-    swap_images();
-    #pragma omp taskwait
-    if(inc + tuile < DIM -1)
-      compute_v6_tmp(inc+tuile, tuile);          
+void compute_v6_tmp(int inc_i, int inc_j, int size_i, int size_j){
+  for(int i = inc_i; i < size_i; i++) {
+    for(int j = inc_j; j < size_j; j++){ 
+      calcul_pixel(i,j);       
+    }
+  }
+  if(size_i < DIM - 1){
+    compute_v6_tmp(size_i, inc_j,size_i + 32, size_j);          
+  }
+  else if (size_j < DIM - 1){
+    compute_v6_tmp(1, size_j,32, size_j + 32);
   }
 }
 
