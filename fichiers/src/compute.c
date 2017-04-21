@@ -204,6 +204,8 @@ unsigned compute_v5(unsigned nb_iter){
 // Version OpenMp task - tuilée
 unsigned compute_v6(unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it ++) {  
+   #pragma omp parallel
+   #pragma omp single
     compute_v6_tmp(1,1,33,33);
     swap_images();
   }
@@ -229,9 +231,11 @@ void compute_v6_tmp(int inc_i, int inc_j, int size_i, int size_j){
     }
   }
   if(size_i < DIM - 1){
+    #pragma omp task
     compute_v6_tmp(size_i, inc_j,size_i + TILESIZE_i, size_j);          
   }
   else if (size_j < DIM - 1){
+    #pragma omp task
     compute_v6_tmp(1, size_j,TILESIZE_i+1, size_j + TILESIZE_j);
   }
 }
