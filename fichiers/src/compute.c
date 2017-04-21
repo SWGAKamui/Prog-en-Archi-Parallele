@@ -204,23 +204,35 @@ unsigned compute_v5(unsigned nb_iter){
 // Version OpenMp task - tuilée
 unsigned compute_v6(unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it ++) {  
-    compute_v6_tmp(1,1,32,32);
+    compute_v6_tmp(1,1,33,33);
     swap_images();
   }
   return 0;
 }
 
 void compute_v6_tmp(int inc_i, int inc_j, int size_i, int size_j){
-  for(int i = inc_i; i < size_i; i++) {
-    for(int j = inc_j; j < size_j; j++){ 
+  int TILESIZE = 32;
+  int TILESIZE_j = 32;
+  int TILESIZE_i = 32;
+  int i,j;
+  for(i = inc_i; i < size_i; i++) {
+    for(j = inc_j; j < size_j; j++){ 
       calcul_pixel(i,j);       
+      if(j == DIM - TILESIZE)
+        TILESIZE_j = 30;
+      else
+        TILESIZE_j = 32;
+      if(i == DIM - TILESIZE)
+          TILESIZE_i = 30;
+        else
+          TILESIZE_i = 32;
     }
   }
   if(size_i < DIM - 1){
-    compute_v6_tmp(size_i, inc_j,size_i + 32, size_j);          
+    compute_v6_tmp(size_i, inc_j,size_i + TILESIZE_i, size_j);          
   }
   else if (size_j < DIM - 1){
-    compute_v6_tmp(1, size_j,32, size_j + 32);
+    compute_v6_tmp(1, size_j,TILESIZE_i+1, size_j + TILESIZE_j);
   }
 }
 
