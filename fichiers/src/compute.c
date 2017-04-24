@@ -121,6 +121,47 @@ void calcul_pixel (int i, int j) {
   }
 }
 
+bool calcul_pixel_opti (int i, int j, bool isStable) {
+
+  int nb_voisins = 0;
+  nb_voisins += cur_img (i - 1, j) != 0 && cur_img (i - 1, j) != red;
+  nb_voisins += cur_img (i - 1, j - 1) != 0 && cur_img (i - 1, j - 1) != red;
+  nb_voisins += cur_img (i - 1, j + 1) != 0 && cur_img (i - 1, j + 1) != red;
+  nb_voisins += cur_img (i, j - 1) != 0 && cur_img (i, j - 1) != red;
+  nb_voisins += cur_img (i + 1, j - 1) != 0 && cur_img (i + 1, j - 1) != red;
+  nb_voisins += cur_img (i + 1, j) != 0 && cur_img (i + 1, j) != red;
+  nb_voisins += cur_img (i, j + 1) != 0 && cur_img (i, j + 1) != red;
+  nb_voisins += cur_img (i + 1, j + 1) != 0 && cur_img (i + 1, j + 1) != red;
+  
+  /*
+    Si la cellule actuelle est morte (rouge ou noire)
+  */
+  if (cur_img (i, j) == 0 || cur_img (i, j) == red){
+      if (nb_voisins == 3){
+        next_img (i, j) = green;
+        isStable= false;
+      }
+      else{
+        next_img (i, j) = 0;
+        isStable = true;
+      }
+    }
+  /*
+    Si la cellule actuelle est vivante
+  */
+  else{
+    if (nb_voisins < 2 || nb_voisins > 3){
+      next_img (i, j) = red;
+      isStable = false;
+    }
+    else{
+      next_img (i, j) = yellow;
+      isStable = true;
+    }
+  }
+  return isStable;
+  
+}
 ////////////////////////////////////////// Version séquentielle simple
 unsigned compute_v0 (unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it++){
@@ -155,16 +196,47 @@ unsigned compute_v1 (unsigned nb_iter){
 
 //Version Sequentielle - opti
 unsigned compute_v2 (unsigned nb_iter){
-  bool isStable = false;
+  unsigned tile = DIM/TILESIZE;
+  bool isStable[tile][tile];
+
+for (int i = 0; i < tile; i++)
+  for (int j = 0; j < tile; j++)
+    isStable[i][j] = false;
+  
 
   for (unsigned it = 1; it <= nb_iter; it++){
     for (int i = 1; i < DIM - 1; i += TILESIZE)
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
+        
         for (int l = i; l < i + TILESIZE; l++)
           for (int k = j; k < j + TILESIZE; k++){
-            if(l < DIM - 1 && k < DIM -1)
-            calcul_pixel (l, k);
+            if(l < DIM - 1 && k < DIM -1){
+              
+              if(it==1){
+                if(isStable[i/TILESIZE][j/TILESIZE])
+                    isStable[i/TILESIZE][j/TILESIZE] = calcul_pixel_opti (l, k, isStable[i/TILESIZE][j/TILESIZE]);
+                else
+                  calcul_pixel(l,k);
+              }else
+
+              /* Si la tuile à l'etat precedent a changé, on calcule ses voisins*/
+              if( !isStable[i/TILESIZE][j/TILESIZE]){
+                /* Verifier si la tuile a changé */
+               // if(isStable[i/TILESIZE][j/TILESIZE])
+                    isStable[i/TILESIZE][j/TILESIZE] = calcul_pixel_opti (l, k, isStable[i/TILESIZE][j/TILESIZE]);
+                //else
+                 // calcul_pixel(l,k);
+              }
+              /* Sinon La tuile ne change pas, on ne calcule pas*/
+              else{
+                next_img (l, k) = cur_img(l,k);
+                printf("TUILE NE CHANGE PAS\n");
+              }
+            }
           }
+          //printf("%d/tilesize= %d",i,i/TILESIZE);
+          //printf(" -- case %d,%d : ",i,j);
+          //printf("%s\n", isStable[i][j] ? "true" : "false");
       }
     swap_images ();
   
