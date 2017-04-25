@@ -139,7 +139,7 @@ bool calcul_pixel_opti (int i, int j, bool isStable) {
   if (cur_img (i, j) == 0 || cur_img (i, j) == red){
       if (nb_voisins == 3){
         next_img (i, j) = green;
-        isStable= false;
+       // isStable= false;
       }
       else{
         next_img (i, j) = 0;
@@ -152,7 +152,7 @@ bool calcul_pixel_opti (int i, int j, bool isStable) {
   else{
     if (nb_voisins < 2 || nb_voisins > 3){
       next_img (i, j) = red;
-      isStable = false;
+      //isStable = false;
     }
     else{
       next_img (i, j) = yellow;
@@ -208,30 +208,32 @@ for (int i = 0; i < tile; i++)
     for (int i = 1; i < DIM - 1; i += TILESIZE)
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
         
+	if(!isStable[i/TILESIZE][j/TILESIZE])
+	
         for (int l = i; l < i + TILESIZE; l++)
           for (int k = j; k < j + TILESIZE; k++){
             if(l < DIM - 1 && k < DIM -1){
               
-              if(it==1){
-                if(isStable[i/TILESIZE][j/TILESIZE])
+            /*  if(it==1){
+                if(isStable[i/TILESIZE][j/TILESIZE])*/
                     isStable[i/TILESIZE][j/TILESIZE] = calcul_pixel_opti (l, k, isStable[i/TILESIZE][j/TILESIZE]);
-                else
+           /*     else
                   calcul_pixel(l,k);
               }else
 
-              /* Si la tuile à l'etat precedent a changé, on calcule ses voisins*/
+              /* Si la tuile à l'etat precedent a changé, on calcule ses voisins/
               if( !isStable[i/TILESIZE][j/TILESIZE]){
-                /* Verifier si la tuile a changé */
+                /* Verifier si la tuile a changé /
                // if(isStable[i/TILESIZE][j/TILESIZE])
                     isStable[i/TILESIZE][j/TILESIZE] = calcul_pixel_opti (l, k, isStable[i/TILESIZE][j/TILESIZE]);
                 //else
                  // calcul_pixel(l,k);
               }
-              /* Sinon La tuile ne change pas, on ne calcule pas*/
+              /* Sinon La tuile ne change pas, on ne calcule pas/
               else{
                 next_img (l, k) = cur_img(l,k);
                 printf("TUILE NE CHANGE PAS\n");
-              }
+              }*/
             }
           }
           //printf("%d/tilesize= %d",i,i/TILESIZE);
