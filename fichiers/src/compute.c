@@ -90,7 +90,6 @@ void first_touch_v2 (){
 }
 
 void calcul_pixel (int i, int j) {
-
   int nb_voisins = 0;
   nb_voisins = (cur_img (i - 1, j) != 0 && cur_img (i - 1, j) != red)
               + (cur_img (i - 1, j - 1) != 0 && cur_img (i - 1, j - 1) != red)
@@ -121,9 +120,8 @@ void calcul_pixel (int i, int j) {
   }
 }
 
-bool calcul_pixel_opti (int i, int j, bool isStable) {
+bool calcul_pixel_opti (int i, int j) {
   int nb_voisins = 0;
-  
   nb_voisins = (cur_img (i - 1, j) != 0 && cur_img (i - 1, j) != red)
               + (cur_img (i - 1, j - 1) != 0 && cur_img (i - 1, j - 1) != red)
               + (cur_img (i - 1, j + 1) != 0 && cur_img (i - 1, j + 1) != red)
@@ -136,23 +134,34 @@ bool calcul_pixel_opti (int i, int j, bool isStable) {
   if (cur_img (i, j) == 0 || cur_img (i, j) == red){
     if (nb_voisins == 3){
       next_img (i, j) = green;
-      isStable = false;
+      return false;
     }
     else{
       next_img (i, j) = 0;
+      return true;
     }
   }
   else{
     if (nb_voisins < 2 || nb_voisins > 3){
       next_img (i, j) = red;
-      isStable = false;
+      return false;
     }
     else{
       next_img (i, j) = yellow;
+      return true;
     }
   }
-  return isStable;
-  
+}
+
+bool tuile_cal(int i, int j){
+  bool state = true;
+  for (int l = i; l < i + TILESIZE; l++)
+    for (int k = j; k < j + TILESIZE; k++)
+      if(l < DIM - 1 && k < DIM -1){
+        if(!calcul_pixel_opti (l, k))
+          state = false;
+      }
+   return state;
 }
 
 bool verif_isStable_voisins (bool** isStable, int i,int j){
@@ -164,20 +173,21 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
       return false;
     }
 
-    if(i==0 && j==0){
-      //  printf("i=0,j=0\n");
-        return (isStable[i+1][j] && isStable[i][j+1] && isStable[i+1][j+1] );
-    }else if(i== 0 && j==DIM-1){
-      //   printf("i=0,j=DIM - 1\n");
-        return (isStable[i][j-1] && isStable[i+1][j] && isStable[i+1][j-1] );
-    }else if( i== DIM-1 && j==0){
-         //       printf("i=DIM - 1,j=0\n");
-        return (isStable[i][j+1] && isStable[i-1][j] && isStable[i-1][j+1] );   
-    }else if(i== DIM-1 && j==DIM-1){
-        //     printf("iDIM - 1,j=DIM -1\n");
+    // if(i==0 && j==0){
+    //   //  printf("i=0,j=0\n");
+    //     return (isStable[i+1][j] && isStable[i][j+1] && isStable[i+1][j+1] );
+    // }else if(i== 0 && j==DIM-1){
+    //   //   printf("i=0,j=DIM - 1\n");
+    //     return (isStable[i][j-1] && isStable[i+1][j] && isStable[i+1][j-1] );
+    // }else if( i== DIM-1 && j==0){
+    //      //       printf("i=DIM - 1,j=0\n");
+    //     return (isStable[i][j+1] && isStable[i-1][j] && isStable[i-1][j+1] );   
+    // }else if(i== DIM-1 && j==DIM-1){
+    //     //     printf("iDIM - 1,j=DIM -1\n");
 
-        return (isStable[i-1][j] && isStable[i][j-1] && isStable[i-1][j-1] );
-    }else if(i== 0){
+    //     return (isStable[i-1][j] && isStable[i][j-1] && isStable[i-1][j-1] );
+    // }else 
+    if(i== 0){
      //         printf("i=0\n");
 
       return (isStable[i][j+1] 
@@ -217,7 +227,7 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
               && isStable[i+1][j] 
               && isStable[i+1][j-1]
               && isStable[i+1][j+1]
-              && isStable[i-1][j] );
+              && isStable[i-1][j]);
     }
 }
 
@@ -252,84 +262,36 @@ unsigned compute_v1 (unsigned nb_iter){
   return 0;
 }
 //Version Sequentielle - opti
-/*unsigned compute_v2 (unsigned nb_iter){
-  
-  int cpt = 0;
-      init_is_stable();
-
-  for (unsigned it = 1; it <= nb_iter; it++){
-
-    for (int i = 1; i < DIM-1; i += TILESIZE)
-      for (int j = 1; j < DIM-1; j += TILESIZE){  
-        
-      	if(!isStable[i/TILESIZE][j/TILESIZE]){
-          cpt = 0;
-      	
-          for (int l = i; l < i + TILESIZE; l++)
-            for (int k = j; k < j + TILESIZE; k++){
-              if(l < DIM - 1 && k < DIM -1){
-                     cpt = calcul_pixel_opti (l, k, cpt);
-            
-              }
-            }
-printf("%d cpt -- i=%d j=%d ---- ", cpt,i,j );
-          printf("%s\n", isStable[i/TILESIZE][j/TILESIZE] ? "true" : "false");
-
-}
-          else
-            printf("STABLE\n");
-        if(cpt == TILESIZE*TILESIZE)
-            isStable[i/TILESIZE][j/TILESIZE] = true;
-        else 
-            isStable[i/TILESIZE][j/TILESIZE] = false;
-         
-      }
-    swap_images ();
-  
-  }
-  return 0;
-}*/
-
 unsigned compute_v2 (unsigned nb_iter){
-  unsigned tile = DIM/TILESIZE;
+  unsigned tile = DIM/TILESIZE + 2;
   bool** isStable= malloc(tile*sizeof(bool*));
   int isStable_i, isStable_j;
   for (int i = 0; i < tile; i++)
-      isStable[i] = malloc(tile*sizeof(bool));;
+      isStable[i] = malloc(tile*sizeof(bool));
 
-  for(int i =0; i < tile; i++)
-    for (int j = 0; j < tile ; j++)
-      isStable[i][j] = false;
+     for(int i = 0; i < tile; i++)
+      for(int j = 0; j < tile; j++)
+        isStable[i][j] = false;
 
  
   for (unsigned it = 1; it <= nb_iter; it++){
     for (int i = 1; i < DIM - 1; i += TILESIZE){
-      isStable_i=  (i/TILESIZE) ;
+      isStable_i =  (i/TILESIZE);
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
-        isStable_j = (j/TILESIZE);
-              
-      if(!verif_isStable_voisins(isStable,isStable_i,isStable_j)){
-        for (int l = i; l < i + TILESIZE; l++)
-          for (int k = j; k < j + TILESIZE; k++){
-            if(l < DIM - 1 && k < DIM -1){
-                   // printf("%d,%d -- index tab: %d,%d",i,j,isStable_i, isStable_j);
-                    //printf("%s\n", isStable[isStable_i][isStable_j] ? "true" : "false");
-                   isStable[isStable_i][isStable_j] = calcul_pixel_opti (l, k, isStable[isStable_i][isStable_j]);
-               
-                }
-          }
+        isStable_j = (j/TILESIZE); 
+        if(!verif_isStable_voisins(isStable, isStable_i, isStable_j)){
+              isStable[isStable_i][isStable_j] = tuile_cal(i,j);
         }
-        else
-        printf("nothing\n");
-      
-  //printf("%d/tilesize= %d",i,i/TILESIZE);
-  //printf(" -- case %d,%d : ",i,j);
-  //printf("%s\n", isStable[i][j] ? "true" : "false");
+        else{
+          printf("nothing\n");
+        }
       }
     }
     swap_images ();
-  
   }
+  for(int i = 0; i < tile;i++)
+    free(isStable[i]);
+  free(isStable);
   return 0;
 }
 ////////////////////////////////////////// Version OpenMP for (??)
@@ -361,6 +323,37 @@ unsigned compute_v4 (unsigned nb_iter){
 
 // Version OpenMp for - optimisée
 unsigned compute_v5 (unsigned nb_iter){
+  int tmp = 0;
+  unsigned tile = DIM/TILESIZE;
+  bool** isStable= malloc(tile*sizeof(bool*));
+  int isStable_i, isStable_j;
+  for (int i = 0; i < tile; i++)
+      isStable[i] = malloc(tile*sizeof(bool));;
+
+  for(int i =0; i < tile; i++)
+    for (int j = 0; j < tile ; j++)
+      isStable[i][j] = false;
+
+ 
+  for (unsigned it = 1; it <= nb_iter; it++){
+    #pragma omp parallel for
+    for (int i = 1; i < DIM - 1; i += TILESIZE){
+      isStable_i =  (i/TILESIZE);
+      for (int j = 1; j < DIM - 1; j += TILESIZE){  
+        isStable_j = (j/TILESIZE); 
+        if(!verif_isStable_voisins(isStable, isStable_i, isStable_j)){
+            if(tuile_cal(i,j) == TILESIZE*TILESIZE)
+              isStable[isStable_i][isStable_j] = true;
+            else
+              isStable[isStable_i][isStable_j] = false;
+        }
+        else{
+          printf("nothing\n");
+        }
+      }
+    }
+    swap_images ();
+  }
   return 0;
 }
 
