@@ -9,19 +9,21 @@
 unsigned version = 0;
 int TILESIZE = 32;
 
+void calcul_pixel (int i, int j);
+
 void first_touch_v1 (void);
 void first_touch_v2 (void);
 
-unsigned compute_v0 (unsigned nb_iter);	//séq simple
-unsigned compute_v1 (unsigned nb_iter);	//séq tuile
-unsigned compute_v2 (unsigned nb_iter);	//séq opti
-unsigned compute_v3 (unsigned nb_iter);	//openMP for - base
-unsigned compute_v4 (unsigned nb_iter);	//openMP for - tuile
-unsigned compute_v5 (unsigned nb_iter);	//openMP for - opt
-unsigned compute_v6 (unsigned nb_iter);	//openMP task - tuile
-void compute_v6_tmp (int inc_i, int inc_j, int size_i, int size_j);	//openMP task - tuile
-unsigned compute_v7 (unsigned nb_iter);	//openMP task - opt
-unsigned compute_v8 (unsigned nb_iter);	//openCL naive et opt
+unsigned compute_v0 (unsigned nb_iter); //séq simple
+unsigned compute_v1 (unsigned nb_iter); //séq tuile
+unsigned compute_v2 (unsigned nb_iter); //séq opti
+unsigned compute_v3 (unsigned nb_iter); //openMP for - base
+unsigned compute_v4 (unsigned nb_iter); //openMP for - tuile
+unsigned compute_v5 (unsigned nb_iter); //openMP for - opt
+unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
+void compute_v6_tmp (int inc_i, int inc_j, int size_i, int size_j); //openMP task - tuile
+unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
+unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch[] = {
   //[ !!!!! TODO]attendre réponse pro
   NULL,
@@ -31,15 +33,15 @@ void_func_t first_touch[] = {
 };
 
 int_func_t compute[] = {
-  compute_v0,			//seq - base
-  compute_v1,			//seq - tuile
-  compute_v2,			//seq - opti
-  compute_v3,			//for - base
-  compute_v4,			//for - tuile
-  compute_v5,			//for - opti
-  compute_v6,			//task - tuile
-  compute_v7,			//task - opt
-  compute_v8,			//opencl
+  compute_v0,     //seq - base
+  compute_v1,     //seq - tuile
+  compute_v2,     //seq - opti
+  compute_v3,     //for - base
+  compute_v4,     //for - tuile
+  compute_v5,     //for - opti
+  compute_v6,     //task - tuile
+  compute_v7,     //task - opt
+  compute_v8,     //opencl
 };
 
 char *version_name[] = {
@@ -55,15 +57,15 @@ char *version_name[] = {
 };
 
 unsigned opencl_used[] = {
-  0,				//seq - base
-  0,				//seq - tuile
-  0,				//seq - opti
-  0,				//for - base
-  0,				//for - tuile
-  0,				//for - opti
-  0,				//task - tuile
-  0,				//task - opt
-  1,				//opencl
+  0,        //seq - base
+  0,        //seq - tuile
+  0,        //seq - opti
+  0,        //for - base
+  0,        //for - tuile
+  0,        //for - opti
+  0,        //task - tuile
+  0,        //task - opt
+  1,        //opencl
 };
 
 Uint32 red = 0xFF0000FF;
@@ -107,7 +109,7 @@ void calcul_pixel (int i, int j) {
       if (nb_voisins == 3)
         next_img (i, j) = green;
       else
-	      next_img (i, j) = 0;
+        next_img (i, j) = 0;
     }
   /*
     Si la cellule actuelle est vivante
@@ -236,9 +238,9 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
 unsigned compute_v0 (unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it++){
     for (int i = 1; i < DIM - 1; i++)
-    	for (int j = 1; j < DIM - 1; j++)  	
-    	  calcul_pixel (i, j);
-      	
+      for (int j = 1; j < DIM - 1; j++)   
+        calcul_pixel (i, j);
+        
     swap_images ();
   }
   return 0;
@@ -300,10 +302,10 @@ unsigned compute_v3 (unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it++){
       #pragma omp parallel for
       for (int i = 1; i < DIM - 1; i++)
-	      for (int j = 1; j < DIM - 1; j++)
-	       calcul_pixel (i, j);
-	    
-	
+        for (int j = 1; j < DIM - 1; j++)
+         calcul_pixel (i, j);
+      
+  
     swap_images ();
   }
   return 0;
@@ -311,19 +313,29 @@ unsigned compute_v3 (unsigned nb_iter){
 
 // Version OpenMp for - tuilée
 unsigned compute_v4 (unsigned nb_iter){
+  int i,j,k,l;
+  int init_l = 1, init_k = 1;
   for (unsigned it = 1; it <= nb_iter; it++){
-    #pragma omp parallel for collapse(2) schedule(dynamic,32)
-    for (int i = 1; i < DIM - 1; i++)
-	    for (int j = 1; j < DIM - 1; j++)
-	      calcul_pixel (i, j);
-    swap_images ();
+  #pragma omp parallel for collapse(4) schedule(static, 1)
+   for (i = 1; i < DIM - 1; i += TILESIZE)
+      for (j = 1; j < DIM - 1; j += TILESIZE){  
+        for (l = init_l; l < init_l + TILESIZE; l++)
+          for (k = init_k; k < init_k + TILESIZE; k++)
+            if(l < DIM - 1 && k < DIM -1){
+              calcul_pixel (l, k);  
+              if(init_l != i)
+                init_l = i;
+              if(init_k != j)
+                init_k = j;
+            }
+      }
+    swap_images (); 
   }
   return 0;
 }
 
 // Version OpenMp for - optimisée
 unsigned compute_v5 (unsigned nb_iter){
-  int tmp = 0;
   unsigned tile = DIM/TILESIZE;
   bool** isStable= malloc(tile*sizeof(bool*));
   int isStable_i, isStable_j;
@@ -365,13 +377,13 @@ unsigned compute_v6 (unsigned nb_iter){
   #pragma omp parallel
   #pragma omp single firstprivate(i, j, k, l)
   {
-	  for (i = 1; i < DIM - 1; i += TILESIZE)
-	    for (j = 1; j < DIM - 1; j += TILESIZE)
+    for (i = 1; i < DIM - 1; i += TILESIZE)
+      for (j = 1; j < DIM - 1; j += TILESIZE)
         #pragma omp task
-  	    for (k = i; k < i + TILESIZE; k++)
-	        for (l = j; l < j + TILESIZE; l++)
-		        if (k < DIM - 1 && l < DIM - 1)
-		          calcul_pixel (k, l);
+        for (k = i; k < i + TILESIZE; k++)
+          for (l = j; l < j + TILESIZE; l++)
+            if (k < DIM - 1 && l < DIM - 1)
+              calcul_pixel (k, l);
     #pragma omp taskwait
     }
   swap_images ();
@@ -383,7 +395,7 @@ unsigned compute_v6 (unsigned nb_iter){
 // Version OpenMP task- optimisée
 unsigned compute_v7 (unsigned nb_iter){
 
-  return 0;			// on ne s'arrête jamais
+  return 0;     // on ne s'arrête jamais
 }
 
 ////////////////////////////////////////// Version OpenCL
