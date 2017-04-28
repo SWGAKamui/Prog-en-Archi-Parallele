@@ -21,7 +21,6 @@ unsigned compute_v3 (unsigned nb_iter); //openMP for - base
 unsigned compute_v4 (unsigned nb_iter); //openMP for - tuile
 unsigned compute_v5 (unsigned nb_iter); //openMP for - opt
 unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
-void compute_v6_tmp (int inc_i, int inc_j, int size_i, int size_j); //openMP task - tuile
 unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
 unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch[] = {
@@ -33,15 +32,15 @@ void_func_t first_touch[] = {
 };
 
 int_func_t compute[] = {
-  compute_v0,     //seq - base
-  compute_v1,     //seq - tuile
-  compute_v2,     //seq - opti
-  compute_v3,     //for - base
-  compute_v4,     //for - tuile
-  compute_v5,     //for - opti
-  compute_v6,     //task - tuile
-  compute_v7,     //task - opt
-  compute_v8,     //opencl
+  compute_v0,
+  compute_v1,
+  compute_v2,
+  compute_v3,
+  compute_v4,
+  compute_v5,
+  compute_v6,
+  compute_v7,
+  compute_v8,
 };
 
 char *version_name[] = {
@@ -370,12 +369,41 @@ unsigned compute_v6 (unsigned nb_iter){
   }
   return 0;
 }
-
+bool tuile_cal_v7(int i, int j){
+  bool state = true;
+  
+  for (int l = i; l < i + TILESIZE; l++)
+    for (int k = j; k < j + TILESIZE; k++)
+      if(l < DIM - 1 && k < DIM -1){
+        if(!calcul_pixel_opti (l, k))
+          state = false;
+      }
+  
+   return state;
+}
 
 // Version OpenMP task- optimisée
 unsigned compute_v7 (unsigned nb_iter){
-
-  return 0;     // on ne s'arrête jamais
+ unsigned tile = DIM/TILESIZE + 2;
+  bool** isStable = init_tab(tile);
+  int i,j;
+  for (unsigned it = 1; it <= nb_iter; it++){
+    #pragma omp parallel
+    #pragma omp single firstprivate(i, j)
+    {
+      for (int i = 1; i < DIM - 1; i += TILESIZE){
+        for (int j = 1; j < DIM - 1; j += TILESIZE){  
+          #pragma omp task
+          if(!verif_isStable_voisins(isStable, i/TILESIZE, j/TILESIZE))
+            isStable[i/TILESIZE][j/TILESIZE] = tuile_cal_v5(i,j);
+        }
+      }
+          #pragma omp taskwait
+      swap_images ();
+    }
+  }
+  free_tab(isStable, tile);
+  return 0;
 }
 
 ////////////////////////////////////////// Version OpenCL
