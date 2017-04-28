@@ -200,31 +200,12 @@ bool tuile_cal(int i, int j){
 }
 
 bool verif_isStable_voisins (bool** isStable, int i,int j){
- //   printf("verif isStable pour %d,%d --", i, j );
  //   printf("%s\n", isStable[i][j] ? "true" : "false");
-
     if(!isStable[i][j]){
-   //       printf("isstable (%d,%d) est false\n", i, j );
       return false;
     }
-
-    // if(i==0 && j==0){
-    //   //  printf("i=0,j=0\n");
-    //     return (isStable[i+1][j] && isStable[i][j+1] && isStable[i+1][j+1] );
-    // }else if(i== 0 && j==DIM-1){
-    //   //   printf("i=0,j=DIM - 1\n");
-    //     return (isStable[i][j-1] && isStable[i+1][j] && isStable[i+1][j-1] );
-    // }else if( i== DIM-1 && j==0){
-    //      //       printf("i=DIM - 1,j=0\n");
-    //     return (isStable[i][j+1] && isStable[i-1][j] && isStable[i-1][j+1] );   
-    // }else if(i== DIM-1 && j==DIM-1){
-    //     //     printf("iDIM - 1,j=DIM -1\n");
-
-    //     return (isStable[i-1][j] && isStable[i][j-1] && isStable[i-1][j-1] );
-    // }else 
     if(i== 0){
      //         printf("i=0\n");
-
       return (isStable[i][j+1] 
               && isStable[i][j-1]
               && isStable[i+1][j] 
@@ -232,7 +213,6 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
               && isStable[i+1][j-1] );
     }else if(i== DIM-1){
      // printf("i=dim - 1\n");
-
       return (isStable[i-1][j+1] 
               && isStable[i][j+1]
               && isStable[i][j-1] 
@@ -265,37 +245,38 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
               && isStable[i-1][j]);
     }
 }
+
+
+bool ** init_tab(int tile){
+  bool** isStable= malloc(tile*sizeof(bool*));
+  for (int i = 0; i < tile; i++)
+    isStable[i] = malloc(tile*sizeof(bool));
+  for(int i = 0; i < tile; i++)
+   for(int j = 0; j < tile; j++)
+     isStable[i][j] = false;
+  return isStable;
+}
+
+void free_tab(bool ** isStable, int tile){
+  for(int i = 0; i < tile;i++)
+    free(isStable[i]);
+  free(isStable);
+}
 //Version Sequentielle - opti
 unsigned compute_v2 (unsigned nb_iter){
   unsigned tile = DIM/TILESIZE + 2;
-  bool** isStable= malloc(tile*sizeof(bool*));
-  int isStable_i, isStable_j;
-  for (int i = 0; i < tile; i++)
-      isStable[i] = malloc(tile*sizeof(bool));
-
-     for(int i = 0; i < tile; i++)
-      for(int j = 0; j < tile; j++)
-        isStable[i][j] = false;
-
+  bool** isStable = init_tab(tile);
  
   for (unsigned it = 1; it <= nb_iter; it++){
     for (int i = 1; i < DIM - 1; i += TILESIZE){
-      isStable_i =  (i/TILESIZE);
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
-        isStable_j = (j/TILESIZE); 
-        if(!verif_isStable_voisins(isStable, isStable_i, isStable_j)){
-              isStable[isStable_i][isStable_j] = tuile_cal(i,j);
-        }
-        else{
-          printf("nothing\n");
-        }
+        if(!verif_isStable_voisins(isStable, i/TILESIZE, j/TILESIZE))
+          isStable[i/TILESIZE][j/TILESIZE] = tuile_cal(i,j);
       }
     }
     swap_images ();
   }
-  for(int i = 0; i < tile;i++)
-    free(isStable[i]);
-  free(isStable);
+  free_tab(isStable, tile);
   return 0;
 }
 ////////////////////////////////////////// Version OpenMP for (??)
@@ -325,7 +306,6 @@ void lancer_calcul(int i, int j){
 
 // Version OpenMp for - tuilée
 unsigned compute_v4 (unsigned nb_iter){
-  int init_l = 1, init_k = 1;
   for (unsigned it = 1; it <= nb_iter; it++){ 
   #pragma omp parallel for collapse(2) schedule(static,32)
    for (int i = 1; i < DIM - 1; i += TILESIZE)
@@ -338,38 +318,34 @@ unsigned compute_v4 (unsigned nb_iter){
   return 0;
 }
 
+bool tuile_cal_v5(int i, int j){
+  bool state = true;
+  #pragma omp parallel for collapse(2)
+  for (int l = i; l < i + TILESIZE; l++)
+    for (int k = j; k < j + TILESIZE; k++)
+      if(l < DIM - 1 && k < DIM -1){
+        if(!calcul_pixel_opti (l, k))
+          state = false;
+      }
+   return state;
+}
+
 // Version OpenMp for - optimisée
 unsigned compute_v5 (unsigned nb_iter){
-  unsigned tile = DIM/TILESIZE;
-  bool** isStable= malloc(tile*sizeof(bool*));
-  int isStable_i, isStable_j;
-  for (int i = 0; i < tile; i++)
-      isStable[i] = malloc(tile*sizeof(bool));;
-
-  for(int i =0; i < tile; i++)
-    for (int j = 0; j < tile ; j++)
-      isStable[i][j] = false;
-
+ unsigned tile = DIM/TILESIZE + 2;
+  bool** isStable = init_tab(tile);
  
   for (unsigned it = 1; it <= nb_iter; it++){
-    #pragma omp parallel for
+        #pragma omp parallel for collapse(2) schedule(static, 32)
     for (int i = 1; i < DIM - 1; i += TILESIZE){
-      isStable_i =  (i/TILESIZE);
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
-        isStable_j = (j/TILESIZE); 
-        if(!verif_isStable_voisins(isStable, isStable_i, isStable_j)){
-            if(tuile_cal(i,j) == TILESIZE*TILESIZE)
-              isStable[isStable_i][isStable_j] = true;
-            else
-              isStable[isStable_i][isStable_j] = false;
-        }
-        else{
-          printf("nothing\n");
-        }
+        if(!verif_isStable_voisins(isStable, i/TILESIZE, j/TILESIZE))
+          isStable[i/TILESIZE][j/TILESIZE] = tuile_cal_v5(i,j);
       }
     }
     swap_images ();
   }
+  free_tab(isStable, tile);
   return 0;
 }
 
