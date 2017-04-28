@@ -122,6 +122,39 @@ void calcul_pixel (int i, int j) {
   }
 }
 
+
+
+////////////////////////////////////////// Version séquentielle simple
+unsigned compute_v0 (unsigned nb_iter){
+  for (unsigned it = 1; it <= nb_iter; it++){
+    for (int i = 1; i < DIM - 1; i++)
+      for (int j = 1; j < DIM - 1; j++)   
+        calcul_pixel (i, j);
+        
+    swap_images ();
+  }
+  return 0;
+  // retourne le nombre d'étapes nécessaires à la
+  // stabilisation du calcul ou bien 0 si le calcul n'est pas
+  // stabilisé au bout des nb_iter itérations
+}
+
+//Version Sequentielle - tuile
+unsigned compute_v1 (unsigned nb_iter){
+  for (unsigned it = 1; it <= nb_iter; it++){
+    for (int i = 1; i < DIM - 1; i += TILESIZE)
+      for (int j = 1; j < DIM - 1; j += TILESIZE){  
+        for (int l = i; l < i + TILESIZE; l++)
+          for (int k = j; k < j + TILESIZE; k++)
+            if(l < DIM - 1 && k < DIM -1)
+              calcul_pixel (l, k);  
+      }
+    swap_images (); 
+  }
+  return 0;
+}
+
+
 bool calcul_pixel_opti (int i, int j) {
   int nb_voisins = 0;
   nb_voisins = (cur_img (i - 1, j) != 0 && cur_img (i - 1, j) != red)
@@ -232,37 +265,6 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
               && isStable[i-1][j]);
     }
 }
-
-
-////////////////////////////////////////// Version séquentielle simple
-unsigned compute_v0 (unsigned nb_iter){
-  for (unsigned it = 1; it <= nb_iter; it++){
-    for (int i = 1; i < DIM - 1; i++)
-      for (int j = 1; j < DIM - 1; j++)   
-        calcul_pixel (i, j);
-        
-    swap_images ();
-  }
-  return 0;
-  // retourne le nombre d'étapes nécessaires à la
-  // stabilisation du calcul ou bien 0 si le calcul n'est pas
-  // stabilisé au bout des nb_iter itérations
-}
-
-//Version Sequentielle - tuile
-unsigned compute_v1 (unsigned nb_iter){
-  for (unsigned it = 1; it <= nb_iter; it++){
-    for (int i = 1; i < DIM - 1; i += TILESIZE)
-      for (int j = 1; j < DIM - 1; j += TILESIZE){  
-        for (int l = i; l < i + TILESIZE; l++)
-          for (int k = j; k < j + TILESIZE; k++)
-            if(l < DIM - 1 && k < DIM -1)
-              calcul_pixel (l, k);  
-      }
-    swap_images (); 
-  }
-  return 0;
-}
 //Version Sequentielle - opti
 unsigned compute_v2 (unsigned nb_iter){
   unsigned tile = DIM/TILESIZE + 2;
@@ -311,23 +313,25 @@ unsigned compute_v3 (unsigned nb_iter){
   return 0;
 }
 
+void lancer_calcul(int i, int j){
+  #pragma omp parallel for collapse(2) 
+  for (int k = i; k < i + TILESIZE; k++)
+    for (int l = j; l < j + TILESIZE; l++)
+      if(l < DIM - 1 && k < DIM -1){
+        calcul_pixel (l, k);  
+      }
+}
+
+
 // Version OpenMp for - tuilée
 unsigned compute_v4 (unsigned nb_iter){
-  int i,j,k,l;
   int init_l = 1, init_k = 1;
-  for (unsigned it = 1; it <= nb_iter; it++){
-  #pragma omp parallel for collapse(4) schedule(static, 1)
-   for (i = 1; i < DIM - 1; i += TILESIZE)
-      for (j = 1; j < DIM - 1; j += TILESIZE){  
-        for (l = init_l; l < init_l + TILESIZE; l++)
-          for (k = init_k; k < init_k + TILESIZE; k++)
-            if(l < DIM - 1 && k < DIM -1){
-              calcul_pixel (l, k);  
-              if(init_l != i)
-                init_l = i;
-              if(init_k != j)
-                init_k = j;
-            }
+  for (unsigned it = 1; it <= nb_iter; it++){ 
+  #pragma omp parallel for collapse(2) schedule(static,32)
+   for (int i = 1; i < DIM - 1; i += TILESIZE)
+      for (int j = 1; j < DIM - 1; j += TILESIZE){  
+        lancer_calcul(i,j);
+
       }
     swap_images (); 
   }
