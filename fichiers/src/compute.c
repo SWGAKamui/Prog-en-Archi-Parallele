@@ -306,7 +306,7 @@ void lancer_calcul(int i, int j){
 // Version OpenMp for - tuilée
 unsigned compute_v4 (unsigned nb_iter){
   for (unsigned it = 1; it <= nb_iter; it++){ 
-  #pragma omp parallel for collapse(2) schedule(static,32)
+  #pragma omp parallel for collapse(2) schedule(dynamic,TILESIZE)
    for (int i = 1; i < DIM - 1; i += TILESIZE)
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
         lancer_calcul(i,j);
@@ -335,7 +335,7 @@ unsigned compute_v5 (unsigned nb_iter){
   bool** isStable = init_tab(tile);
  
   for (unsigned it = 1; it <= nb_iter; it++){
-        #pragma omp parallel for collapse(2) schedule(static, 32)
+        #pragma omp parallel for collapse(2) schedule(dynamic, TILESIZE)
     for (int i = 1; i < DIM - 1; i += TILESIZE){
       for (int j = 1; j < DIM - 1; j += TILESIZE){  
         if(!verif_isStable_voisins(isStable, i/TILESIZE, j/TILESIZE))
@@ -395,7 +395,7 @@ unsigned compute_v7 (unsigned nb_iter){
         for (int j = 1; j < DIM - 1; j += TILESIZE){  
           #pragma omp task
           if(!verif_isStable_voisins(isStable, i/TILESIZE, j/TILESIZE))
-            isStable[i/TILESIZE][j/TILESIZE] = tuile_cal_v5(i,j);
+            isStable[i/TILESIZE][j/TILESIZE] = tuile_cal_v7(i,j);
         }
       }
           #pragma omp taskwait
