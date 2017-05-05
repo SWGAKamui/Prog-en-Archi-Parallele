@@ -387,7 +387,6 @@ bool tuile_cal_v7(int i, int j){
 unsigned compute_v7 (unsigned nb_iter){
  unsigned tile = DIM/TILESIZE + 2;
   bool** isStable = init_tab(tile);
-  int i,j;
   for (unsigned it = 1; it <= nb_iter; it++){
     #pragma omp parallel
     #pragma omp single
