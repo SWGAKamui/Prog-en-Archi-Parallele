@@ -24,7 +24,6 @@ unsigned compute_v6 (unsigned nb_iter); //openMP task - tuile
 unsigned compute_v7 (unsigned nb_iter); //openMP task - opt
 unsigned compute_v8 (unsigned nb_iter); //openCL naive et opt
 void_func_t first_touch[] = {
-  //[ !!!!! TODO]attendre réponse pro
   NULL,
   first_touch_v1,
   first_touch_v2,
@@ -199,26 +198,22 @@ bool tuile_cal(int i, int j){
 }
 
 bool verif_isStable_voisins (bool** isStable, int i,int j){
- //   printf("%s\n", isStable[i][j] ? "true" : "false");
     if(!isStable[i][j]){
       return false;
     }
     if(i== 0){
-     //         printf("i=0\n");
       return (isStable[i][j+1] 
               && isStable[i][j-1]
               && isStable[i+1][j] 
               && isStable[i+1][j+1]
               && isStable[i+1][j-1] );
     }else if(i== DIM-1){
-     // printf("i=dim - 1\n");
       return (isStable[i-1][j+1] 
               && isStable[i][j+1]
               && isStable[i][j-1] 
               && isStable[i-1][j-1] 
               && isStable[i-1][j] );
     }else if(j==0){
-    //  printf("j==0\n");
       return (isStable[i-1][j+1] 
               && isStable[i][j+1]
               && isStable[i+1][j] 
@@ -226,14 +221,12 @@ bool verif_isStable_voisins (bool** isStable, int i,int j){
               && isStable[i-1][j] );
     }
     else if(j== DIM-1){
-     // printf("j=dim - 1\n");
         return (isStable[i][j-1] 
               && isStable[i-1][j-1] 
               && isStable[i+1][j] 
               && isStable[i+1][j-1]
               && isStable[i-1][j] );
     }else{
-     // printf("else\n");
      return (isStable[i-1][j+1] 
               && isStable[i][j+1]
               && isStable[i][j-1] 
