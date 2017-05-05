@@ -287,8 +287,6 @@ unsigned compute_v3 (unsigned nb_iter){
 }
 
 void lancer_calcul(int i, int j){
-omp_set_nested(1);
-  #pragma omp parallel for collapse(2) 
   for (int k = i; k < i + TILESIZE; k++)
     for (int l = j; l < j + TILESIZE; l++)
       if(l < DIM - 1 && k < DIM -1){
@@ -313,7 +311,6 @@ unsigned compute_v4 (unsigned nb_iter){
 
 bool tuile_cal_v5(int i, int j){
   bool state = true;
-  #pragma omp parallel for collapse(2)
   for (int l = i; l < i + TILESIZE; l++)
     for (int k = j; k < j + TILESIZE; k++)
       if(l < DIM - 1 && k < DIM -1){
