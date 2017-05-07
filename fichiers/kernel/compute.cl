@@ -1,11 +1,3 @@
-static unsigned saturate (unsigned input)
-{
-  for (int i = 0; i < 7; i++)
-    input = (input << 1) | input;
-
-  return input;
-}
-
 __kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0);
@@ -15,81 +7,88 @@ __kernel void game_of_life_naif (__global unsigned *in, __global unsigned *out)
   if(x != (DIM - 1) && x != 0 && y != (DIM-1) && y != 0 ){
     int nb_voisins = 0;
     /*  Calcul nombre de voisins   */
-    nb_voisins += in[y * DIM + (x+1)]!=0 && in[y * DIM + (x+1)]!=saturate (0x11000011);
-    nb_voisins += in[y * DIM + (x-1)]!=0 && in[y * DIM + (x-1)]!=saturate (0x11000011);
-    nb_voisins += in[(y+1) * DIM + x]!=0 && in[(y+1) * DIM + x]!=saturate (0x11000011);
-    nb_voisins += in[(y-1) * DIM + x]!=0 && in[(y-1) * DIM + x]!=saturate (0x11000011);
-    nb_voisins += in[(y-1) * DIM + (x-1)]!=0 && in[(y-1) * DIM + (x-1)]!=saturate (0x11000011);
-    nb_voisins += in[(y+1) * DIM + (x+1)]!=0 && in[(y+1) * DIM + (x+1)]!=saturate (0x11000011);
-    nb_voisins += in[(y-1) * DIM + (x+1)]!=0 && in[(y-1) * DIM + (x+1)]!=saturate (0x11000011);
-    nb_voisins += in[(y+1) * DIM + (x-1)]!=0 && in[(y+1) * DIM + (x-1)]!=saturate (0x11000011);
+    nb_voisins = (in[y * DIM + (x+1)]!=0 && in[y * DIM + (x+1)]!=0xFF0000FF)
+                + (in[y * DIM + (x-1)]!=0 && in[y * DIM + (x-1)]!=0xFF0000FF)
+                + (in[(y+1) * DIM + x]!=0 && in[(y+1) * DIM + x]!=0xFF0000FF)
+                + (in[(y-1) * DIM + x]!=0 && in[(y-1) * DIM + x]!=0xFF0000FF)
+                + (in[(y-1) * DIM + (x-1)]!=0 && in[(y-1) * DIM + (x-1)]!=0xFF0000FF)
+                + (in[(y+1) * DIM + (x+1)]!=0 && in[(y+1) * DIM + (x+1)]!=0xFF0000FF)
+                + (in[(y-1) * DIM + (x+1)]!=0 && in[(y-1) * DIM + (x+1)]!=0xFF0000FF)
+                + (in[(y+1) * DIM + (x-1)]!=0 && in[(y+1) * DIM + (x-1)]!=0xFF0000FF);
 
       /* Si la cellule actuelle est morte */
-    if(local_color == 0 || local_color == saturate (0x11000011)){
+    if(local_color == 0 || local_color == 0xFF0000FF){
       if(nb_voisins == 3)
-        out[y*DIM + x] = saturate (0x00110011); //green
+        out[y*DIM + x] = 0x00FF00FF; //green
       else
         out[y*DIM + x] = 0;
     } /* Si la cellule actuelle est vivante */
     else{
       if(nb_voisins < 2 || nb_voisins > 3)
-        out[y*DIM + x] = saturate (0x11000011); //red
+        out[y*DIM + x] = 0xFF0000FF ; //red
       else
-        out[y*DIM + x] = saturate (0x11110011); //yellow
+        out[y*DIM + x] = 0xFFFF00FF; //yellow
       }
   }
 }
 
 __kernel void game_of_life_opt (__global unsigned *in, __global unsigned *out)
 {
-  int x = get_global_id (0);
+ int x = get_global_id (0);
   int y = get_global_id (1);
-unsigned local_color = in[y * DIM + x];
+  unsigned local_color = in[y * DIM + x];
   __local float tile[TILEY][TILEX+1];
 
   int xloc = get_local_id (0);
   int yloc = get_local_id (1);
 
- if(x != (DIM - 1) && x != 0 && y != (DIM-1) && y != 0 ){
-     //initialiser le tampon tile
-     tile [yloc][xloc] = in [y * DIM + x];
+  int haut, bas, gauche, droite ;
+
+  haut   = ( xloc == 0       && x > 0);
+  bas    = ( xloc == TILEX-1 && x < DIM-1);
+  gauche = ( yloc == 0       && y > 0);
+  droite = ( yloc == TILEY-1 && y < DIM-1);
+
+     /*initialiser le tampon tile */ 
+     //premiere partie 
+     tile [yloc + 1][xloc + 1] = in [y * DIM + x];
+     //deuxieme partie
+     if(haut || bas)
+        tile [yloc + 1][xloc + 1 - haut + bas] = in [y * DIM + x - haut + bas];
+     //troisieme partie
+      if(droite || gauche)
+        tile [yloc + 1 - gauche + droite][xloc + 1] = in [(y - gauche + droite) * DIM + x];
+     //quatrieme partie
+      if((haut || bas) && (gauche || droite) )
+         tile [yloc + 1 - gauche + droite][xloc + 1 - haut + bas] = in [(y - gauche + droite) * DIM + x - haut + bas];
+
      //barriere obligatoire pour attendre l'initialisation de tile
      barrier (CLK_LOCAL_MEM_FENCE);
 
      int nb_voisins = 0;
 
-    nb_voisins += tile[xloc-1][yloc]!=0 && tile[xloc-1][yloc]!=saturate (0x11000011);
-    nb_voisins += tile[xloc-1][yloc-1]!=0 && tile[xloc-1][yloc-1]!=saturate (0x11000011);
-    nb_voisins += tile[xloc-1][yloc+1]!=0 && tile[xloc-1][yloc+1]!=saturate (0x11000011);
-    
-    nb_voisins += tile[xloc][yloc-1]!=0 && tile[xloc][yloc-1]!=saturate (0x11000011);
-    nb_voisins += tile[xloc+1][yloc-1]!=0 && tile[xloc+1][yloc-1]!=saturate (0x11000011);
-    nb_voisins += tile[xloc+1][yloc]!=0 && tile[xloc+1][yloc]!=saturate (0x11000011);
-    nb_voisins += tile[xloc][yloc+1]!=0 && tile[xloc][yloc+1]!=saturate (0x11000011);
-    nb_voisins += tile[xloc+1][yloc+1]!=0 && tile[xloc+1][yloc+1]!=saturate (0x11000011);
+    nb_voisins = (tile[yloc+1][xloc]!=0 && tile[yloc+1][xloc]!=0xFF0000FF)
+                + (tile[yloc-1][xloc]!=0 && tile[yloc-1][xloc]!=0xFF0000FF)
+                + (tile[yloc][xloc+1]!=0 && tile[yloc][xloc+1]!=0xFF0000FF)
+                + (tile[yloc][xloc-1]!=0 && tile[yloc][xloc-1]!=0xFF0000FF)
+                + (tile[yloc-1][xloc-1]!=0 && tile[yloc-1][xloc-1]!=0xFF0000FF)
+                + (tile[yloc+1][xloc+1]!=0 && tile[yloc+1][xloc+1]!=0xFF0000FF)
+                + (tile[yloc+1][xloc-1]!=0 && tile[yloc+1][xloc-1]!=0xFF0000FF)
+                + (tile[yloc-1][xloc+1]!=0 && tile[yloc-1][xloc+1]!=0xFF0000F);
 
-    //barriere obligatoire
-    barrier (CLK_LOCAL_MEM_FENCE);
-      /*
-        Si la cellule actuelle est morte
-       */
-    if(local_color == 0 || local_color == saturate (0x11000011)){
+     /* Si la cellule actuelle est morte */
+    if(local_color == 0 || local_color == 0xFF0000FF){
       if(nb_voisins == 3)
-        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x00110011); //green
+        out[y*DIM + x] = 0x00FF00FF; //green
       else
-        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = 0;
-    } /*
-        Si la cellule actuelle est vivante
-       */
+        out[y*DIM + x] = 0;
+    } /* Si la cellule actuelle est vivante */
     else{
       if(nb_voisins < 2 || nb_voisins > 3)
-        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x11000011); //red
+        out[y*DIM + x] = 0xFF0000FF ; //red
       else
-        out[(x-xloc +yloc) * DIM + y-yloc + xloc] = saturate (0x11110011); //yellow
+        out[y*DIM + x] = 0xFFFF00FF; //yellow
       }
-
-
-  }
 
 }
 
