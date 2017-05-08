@@ -66,15 +66,16 @@ __kernel void game_of_life_opt (__global unsigned *in, __global unsigned *out)
      barrier (CLK_LOCAL_MEM_FENCE);
 
      int nb_voisins = 0;
+     if(!(haut || bas || droite || gauche) )
+         nb_voisins = (tile[yloc][xloc + 1]!=0     && tile[yloc][xloc + 1]!=0xFF0000FF)
+                    + (tile[yloc + 1][xloc + 2]!=0 && tile[yloc + 1][xloc + 2]!=0xFF0000FF)
+                    + (tile[yloc + 1][xloc]!=0     && tile[yloc + 1][xloc]!=0xFF0000FF)
+                    + (tile[yloc][xloc]!=0         && tile[yloc][xloc]!=0xFF0000FF)
+                    + (tile[yloc + 2][xloc + 2]!=0 && tile[yloc + 2][xloc + 2]!=0xFF0000FF)
+                    + (tile[yloc + 2][xloc + 1]!=0 && tile[yloc + 2][xloc + 1]!=0xFF0000FF)
+                    + (tile[yloc][xloc + 2]!=0     && tile[yloc][xloc + 2]!=0xFF0000F)
+                    + (tile[yloc + 2][xloc]!=0     && tile[yloc + 2][xloc]!=0xFF0000F);
 
-    nb_voisins = (tile[yloc+1][xloc]!=0 && tile[yloc+1][xloc]!=0xFF0000FF)
-                + (tile[yloc-1][xloc]!=0 && tile[yloc-1][xloc]!=0xFF0000FF)
-                + (tile[yloc][xloc+1]!=0 && tile[yloc][xloc+1]!=0xFF0000FF)
-                + (tile[yloc][xloc-1]!=0 && tile[yloc][xloc-1]!=0xFF0000FF)
-                + (tile[yloc-1][xloc-1]!=0 && tile[yloc-1][xloc-1]!=0xFF0000FF)
-                + (tile[yloc+1][xloc+1]!=0 && tile[yloc+1][xloc+1]!=0xFF0000FF)
-                + (tile[yloc+1][xloc-1]!=0 && tile[yloc+1][xloc-1]!=0xFF0000FF)
-                + (tile[yloc-1][xloc+1]!=0 && tile[yloc-1][xloc+1]!=0xFF0000F);
 
      /* Si la cellule actuelle est morte */
     if(local_color == 0 || local_color == 0xFF0000FF){
